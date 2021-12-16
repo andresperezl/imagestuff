@@ -17,7 +17,8 @@ func (c HSL) f(n int) uint32 {
 	k := c.k(n)
 	mink := math.Min(k-3.0, math.Min(9.0-k, 1))
 	amax := c.a() * math.Max(-1, mink)
-	return uint32(math.Round(255.0 * (c.L - amax)))
+	v := uint32(math.Round(255.0 * (c.L - amax)))
+	return (v << 8) | v
 }
 
 func (c HSL) k(n int) float64 {
@@ -36,9 +37,9 @@ func hslModel(c color.Color) color.Color {
 		return c
 	}
 	r, g, b, _ := c.RGBA()
-	rprime := float64(r) / 255.0
-	gprime := float64(g) / 255.0
-	bprime := float64(b) / 255.0
+	rprime := float64(r>>8) / 255.0
+	gprime := float64(g>>8) / 255.0
+	bprime := float64(b>>8) / 255.0
 
 	xmax := math.Max(rprime, math.Max(gprime, bprime))
 	xmin := math.Min(rprime, math.Min(gprime, bprime))
@@ -57,6 +58,9 @@ func hslModel(c color.Color) color.Color {
 		case bprime:
 			h = 60.0 * (4.0 + (rprime-gprime)/chroma)
 		}
+	}
+	if h < 0.0 {
+		h += 360.0
 	}
 
 	var s float64

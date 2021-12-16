@@ -1,6 +1,7 @@
 package fun
 
 import (
+	"fmt"
 	"image"
 	"image/jpeg"
 	"io"
@@ -17,8 +18,13 @@ type DeepFryOptions struct {
 }
 
 func DeepFry(out io.Writer, img image.Image, level int, opts *DeepFryOptions) error {
-	if level <= 0 || out == nil {
-		return nil
+
+	if out == nil {
+		return fmt.Errorf("out cannot be nil")
+	}
+
+	if level <= 0 {
+		return fmt.Errorf("level needs to be greater than 0")
 	}
 
 	if opts == nil {
@@ -26,16 +32,17 @@ func DeepFry(out io.Writer, img image.Image, level int, opts *DeepFryOptions) er
 			Saturation: 0.1,
 			Lightness:  0.1,
 			Hue:        36.0,
+			Quality:    10,
 		}
 	}
-
+	lf := float64(level)
 	newImg := image.NewRGBA(img.Bounds())
 	for x := img.Bounds().Min.X; x < img.Bounds().Max.X; x++ {
 		for y := img.Bounds().Min.Y; y < img.Bounds().Max.Y; y++ {
 			c := hsl.HSLModel.Convert(img.At(x, y)).(hsl.HSL)
-			c.S = math.Min(1.0, c.S+(c.S*opts.Saturation*float64(level)))
-			c.L = math.Min(1.0, c.L+(c.L*opts.Lightness*float64(level)))
-			c.H = math.Mod(c.H+opts.Hue*float64(level), 360.0)
+			c.S = math.Min(1.0, c.S+(c.S*opts.Saturation*lf))
+			c.L = math.Min(1.0, c.L+(c.L*opts.Lightness*lf))
+			c.H = math.Mod(c.H+opts.Hue*lf, 360.0)
 			if c.H < 0 {
 				c.H += 360.0
 			}
