@@ -5,59 +5,27 @@ import (
 	"math"
 )
 
-const (
-	oneThird = 1.0 / 3.0
-	twoThird = 2.0 / 3.0
-	twoPi    = 2 * math.Pi
-)
-
 type HSL struct {
 	H, S, L float64
 }
 
 func (c HSL) RGBA() (r, g, b, a uint32) {
-	if c.S == 0 {
-		gray := uint32(math.Round(255.0 * c.L))
-		return gray, gray, gray, 0xffff
-	}
-
-	var t1, t2 float64
-	if c.L < 0.5 {
-		t1 = c.L * (1.0 + c.S)
-	} else {
-		t1 = c.L + c.S - c.L*c.S
-	}
-
-	t2 = 2*c.L - t1
-
-	hp := math.Remainder(c.H, twoPi) / twoPi
-	tR := hp + oneThird
-	tG := hp
-	tB := hp - oneThird
-	if tR > 1 {
-		tR -= 1
-	}
-	if tB < 0 {
-		tB += 1
-	}
-
-	r = getChannel(tR, t1, t2)
-	g = getChannel(tG, t1, t2)
-	b = getChannel(tB, t1, t2)
-
-	return r, g, b, 0xffff
+	return c.f(0), c.f(8), c.f(4), 0xffff
 }
 
-func getChannel(tc, t1, t2 float64) uint32 {
-	v := tc
-	if 6.0*tc < 1.0 {
-		v = t2 + (t1-t2)*6.0*tc
-	} else if 2.0*tc < 1.0 {
-		v = t1
-	} else if 3.0*tc < 2.0 {
-		v = t2 + (t1-t2)*(twoThird-tc)*6.0
-	}
-	return uint32(math.Round(v * 255.0))
+func (c HSL) f(n int) uint32 {
+	k := c.k(n)
+	mink := math.Min(k-3.0, math.Min(9.0-k, 1))
+	amax := c.a() * math.Max(-1, mink)
+	return uint32(math.Round(255.0 * (c.L - amax)))
+}
+
+func (c HSL) k(n int) float64 {
+	return math.Mod(float64(n)+float64(c.H)/30.0, 12.0)
+}
+
+func (c HSL) a() float64 {
+	return c.S * math.Min(c.L, 1.0-c.L)
 }
 
 var HSLModel color.Model = color.ModelFunc(hslModel)
@@ -67,33 +35,36 @@ func hslModel(c color.Color) color.Color {
 	if _, ok := c.(HSL); ok {
 		return c
 	}
-	var h, s, l float64
 	r, g, b, _ := c.RGBA()
-	rp := float64(r) / 255.0
-	gp := float64(g) / 255.0
-	bp := float64(b) / 255.0
-	min := math.Min(rp, math.Min(gp, bp))
-	max := math.Max(rp, math.Max(gp, bp))
-	l = (min + max) / 2
-	if min == max {
-		return HSL{0, 0, l}
-	}
-	mmm := max - min
-	if l <= 0.5 {
-		s = mmm / (max + min)
+	rprime := float64(r) / 255.0
+	gprime := float64(g) / 255.0
+	bprime := float64(b) / 255.0
+
+	xmax := math.Max(rprime, math.Max(gprime, bprime))
+	xmin := math.Min(rprime, math.Min(gprime, bprime))
+
+	chroma := xmax - xmin
+	l := (xmax + xmin) / 2.0
+	var h float64
+	if chroma == 0 {
+		h = 0
 	} else {
-		s = mmm / (2.0 - max - min)
+		switch xmax {
+		case rprime:
+			h = 60.0 * (gprime - bprime) / chroma
+		case gprime:
+			h = 60.0 * (2.0 + (bprime-rprime)/chroma)
+		case bprime:
+			h = 60.0 * (4.0 + (rprime-gprime)/chroma)
+		}
 	}
-	switch max {
-	case rp:
-		h = (gp - bp) / mmm
-	case gp:
-		h = 2.0 + (bp-rp)/mmm
-	case bp:
-		h = 4.0 + (rp-gp)/mmm
+
+	var s float64
+	if l == 0.0 || l == 1.0 {
+		s = 0
+	} else {
+		s = (xmax - l) / math.Min(l, 1.0-l)
 	}
-	if h < 0 {
-		h += twoPi
-	}
+
 	return HSL{h, s, l}
 }
