@@ -35,7 +35,7 @@ func DeepFry(out io.Writer, img image.Image, level int, opts *DeepFryOptions) er
 			c := hsl.HSLModel.Convert(img.At(x, y)).(hsl.HSL)
 			c.S = math.Min(1.0, c.S+(c.S*opts.Saturation*float64(level)))
 			c.L = math.Min(1.0, c.L+(c.L*opts.Lightness*float64(level)))
-			c.H = math.Mod(c.H+opts.Hue, 360.0)
+			c.H = math.Mod(c.H+opts.Hue*float64(level), 360.0)
 			if c.H < 0 {
 				c.H += 360.0
 			}
