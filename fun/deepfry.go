@@ -31,7 +31,7 @@ func DeepFry(out io.Writer, img image.Image, level int, opts *DeepFryOptions) er
 		opts = &DeepFryOptions{
 			Saturation: 0.1,
 			Lightness:  0.1,
-			Hue:        36.0,
+			Hue:        36,
 			Quality:    10,
 		}
 	}
@@ -39,7 +39,7 @@ func DeepFry(out io.Writer, img image.Image, level int, opts *DeepFryOptions) er
 	newImg := image.NewRGBA(img.Bounds())
 	for x := img.Bounds().Min.X; x < img.Bounds().Max.X; x++ {
 		for y := img.Bounds().Min.Y; y < img.Bounds().Max.Y; y++ {
-			c := hsl.HSLModel.Convert(img.At(x, y)).(hsl.HSL)
+			c := hsl.HSLModel.Convert(img.At(x-x%level, y-y%level)).(hsl.HSL)
 			c.S = math.Min(1.0, c.S+(c.S*opts.Saturation*lf))
 			c.L = math.Min(1.0, c.L+(c.L*opts.Lightness*lf))
 			c.H = math.Mod(c.H+opts.Hue*lf, 360.0)
@@ -49,11 +49,8 @@ func DeepFry(out io.Writer, img image.Image, level int, opts *DeepFryOptions) er
 			newImg.Set(x, y, c)
 		}
 	}
-	q := 100 - opts.Quality*level
-	if q < 1 {
-		q = 1
-	}
-	if err := jpeg.Encode(out, newImg, &jpeg.Options{Quality: q}); err != nil {
+	q := math.Max(1.0, 100.0*math.Pow(1.0/float64(opts.Quality), lf))
+	if err := jpeg.Encode(out, newImg, &jpeg.Options{Quality: int(q)}); err != nil {
 		return err
 	}
 	return nil
