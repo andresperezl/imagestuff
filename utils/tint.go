@@ -16,7 +16,7 @@ func Tint(img image.Image, c color.Color, str uint8) image.Image {
 	t := image.NewRGBA(img.Bounds())
 	tr, tg, tb, _ := c.RGBA()
 	for x := img.Bounds().Min.X; x < img.Bounds().Max.X; x++ {
-		for y := img.Bounds().Min.Y; y < img.Bounds().Min.Y; y++ {
+		for y := img.Bounds().Min.Y; y < img.Bounds().Max.Y; y++ {
 			nc := color.RGBAModel.Convert(img.At(x, y)).(color.RGBA)
 			r, g, b, a := nc.RGBA()
 			nr := r*(max-s)/max + tr*s/max
