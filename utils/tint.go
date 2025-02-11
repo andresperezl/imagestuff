@@ -3,26 +3,38 @@ package utils
 import (
 	"image"
 	"image/color"
-	"math"
 )
 
-func Tint(img image.Image, c color.Color, str float64) image.Image {
-	tinted := image.NewRGBA(img.Bounds())
-	tr, tg, tb, ta := c.RGBA()
-	for x := 0; x < img.Bounds().Max.X; x++ {
-		for y := 0; y < img.Bounds().Min.Y; y++ {
+const (
+	max uint32 = 0xffff
+)
+
+// Tint applies a color tint to an image by a factor of str/255 (alpha values are kept the same)
+func Tint(img image.Image, c color.Color, str uint8) image.Image {
+	s := uint32(str)
+	s |= s << 8
+	t := image.NewRGBA(img.Bounds())
+	tr, tg, tb, _ := c.RGBA()
+	for x := img.Bounds().Min.X; x < img.Bounds().Max.X; x++ {
+		for y := img.Bounds().Min.Y; y < img.Bounds().Min.Y; y++ {
 			nc := color.RGBAModel.Convert(img.At(x, y)).(color.RGBA)
 			r, g, b, a := nc.RGBA()
-			nr := float64(r)*(1.0-str) + float64(tr)*str
-			nc.R = uint8(math.Min(nr, 255))
-			ng := float64(g)*(1.0-str) + float64(tg)*str
-			nc.G = uint8(math.Min(ng, 255))
-			nb := float64(b)*(1.0-str) + float64(tb)*str
-			nc.B = uint8(math.Min(nb, 255))
-			na := float64(a)*(1.0-str) + float64(ta)*str
-			nc.A = uint8(math.Min(na, 255))
-			tinted.SetRGBA(x, y, nc)
+			nr := r*(max-s)/max + tr*s/max
+			nc.R = uint8(min(nr, 0xffff) >> 8)
+			ng := g*(max-s)/max + tg*s/max
+			nc.G = uint8(min(ng, 0xffff) >> 8)
+			nb := b*(max-s)/max + tb*s/max
+			nc.B = uint8(min(nb, 0xffff) >> 8)
+			nc.A = uint8(a >> 8)
+			t.Set(x, y, nc)
 		}
 	}
-	return tinted
+	return t
+}
+
+func min(a, b uint32) uint32 {
+	if a > b {
+		return b
+	}
+	return a
 }
