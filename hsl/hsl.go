@@ -9,24 +9,49 @@ type HSL struct {
 	H, S, L float64
 }
 
-func (c HSL) RGBA() (r, g, b, a uint32) {
-	return c.f(0), c.f(8), c.f(4), 0xffff
+func (c HSL) RGBA() (uint32, uint32, uint32, uint32) {
+	var r, g, b float64
+
+	if c.S == 0 {
+		// Achromatic color (gray).
+		r, g, b = c.L, c.L, c.L
+	} else {
+		var q float64
+		if c.L < 0.5 {
+			q = c.L * (1 + c.S)
+		} else {
+			q = c.L + c.S - c.L*c.S
+		}
+		p := 2*c.L - q
+		hk := c.H / 360
+
+		// Helper function to convert hue to rgb.
+
+		r = hue2rgb(p, q, hk+1.0/3.0)
+		g = hue2rgb(p, q, hk)
+		b = hue2rgb(p, q, hk-1.0/3.0)
+	}
+
+	return uint32(math.Round(r * 0xfff)), uint32(math.Round(g * 0xffff)), uint32(math.Round(b * 0xffff)), 0xffff
 }
 
-func (c HSL) f(n int) uint32 {
-	k := c.k(n)
-	mink := math.Min(k-3.0, math.Min(9.0-k, 1))
-	amax := c.a() * math.Max(-1, mink)
-	v := uint32(math.Round(255.0 * (c.L - amax)))
-	return (v << 8) | v
-}
-
-func (c HSL) k(n int) float64 {
-	return math.Mod(float64(n)+float64(c.H)/30.0, 12.0)
-}
-
-func (c HSL) a() float64 {
-	return c.S * math.Min(c.L, 1.0-c.L)
+func hue2rgb(p, q, t float64) float64 {
+	if t < 0 {
+		t += 1
+	}
+	if t > 1 {
+		t -= 1
+	}
+	if t < 1.0/6.0 {
+		return p + (q-p)*6*t
+	}
+	if t < 1.0/2.0 {
+		return q
+	}
+	if t < 2.0/3.0 {
+		return p + (q-p)*(2.0/3.0-t)*6
+	}
+	return p
 }
 
 var HSLModel color.Model = color.ModelFunc(hslModel)
@@ -37,37 +62,37 @@ func hslModel(c color.Color) color.Color {
 		return c
 	}
 	r, g, b, _ := c.RGBA()
-	rprime := float64(r>>8) / 255.0
-	gprime := float64(g>>8) / 255.0
-	bprime := float64(b>>8) / 255.0
+	rf := float64(r) / 255.0
+	gf := float64(g) / 255.0
+	bf := float64(b) / 255.0
 
-	xmax := math.Max(rprime, math.Max(gprime, bprime))
-	xmin := math.Min(rprime, math.Min(gprime, bprime))
+	max := math.Max(rf, math.Max(gf, bf))
+	min := math.Min(rf, math.Min(gf, bf))
+	l := (max + min) / 2
 
-	chroma := xmax - xmin
-	l := (xmax + xmin) / 2.0
-	var h float64
-	if chroma == 0 {
-		h = 0
+	var h, s float64
+	if max == min {
+		h, s = 0, 0 // achromatic
 	} else {
-		switch xmax {
-		case rprime:
-			h = 60.0 * (gprime - bprime) / chroma
-		case gprime:
-			h = 60.0 * (2.0 + (bprime-rprime)/chroma)
-		case bprime:
-			h = 60.0 * (4.0 + (rprime-gprime)/chroma)
+		d := max - min
+		if l > 0.5 {
+			s = d / (2.0 - max - min)
+		} else {
+			s = d / (max + min)
 		}
-	}
-	if h < 0.0 {
-		h += 360.0
-	}
 
-	var s float64
-	if l == 0.0 || l == 1.0 {
-		s = 0
-	} else {
-		s = (xmax - l) / math.Min(l, 1.0-l)
+		switch max {
+		case rf:
+			h = (gf - bf) / d
+			if gf < bf {
+				h += 6
+			}
+		case gf:
+			h = (bf-rf)/d + 2
+		case bf:
+			h = (rf-gf)/d + 4
+		}
+		h *= 60
 	}
 
 	return HSL{h, s, l}
