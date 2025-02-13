@@ -21,7 +21,7 @@ type deepFrier struct {
 
 func (df *deepFrier) Apply(src image.Image) image.Image {
 	lf64 := float64(df.Level)
-	posterizeLvl := int(max(2.0, 255.0/(math.Pow(2, lf64)-1)))
+	posterizeLvl := int(max(2.0, 256.0/math.Pow(2, lf64)))
 	cfc := ColorFilterChain{
 		NewModulateColorFilter(0, 1.0+(0.1*lf64), 1.0),
 		NewSigmoidalContrastFilter(2.0 * lf64),
