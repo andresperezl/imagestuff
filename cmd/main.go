@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"image"
+	"image/color"
 	_ "image/jpeg"
 	"image/png"
 	_ "image/png"
@@ -37,7 +38,11 @@ func main() {
 	}
 
 	filter := filters.NewDeepFryImageFilter(uint8(lvl))
-	deepFried := filter(src)
+	ifc := filters.ImageFilterChain{
+		filters.ColorFilterChain{filters.NewTintColorFilter(color.NRGBA{255, 0, 0, 255}, 0.05)}.Apply,
+		filter,
+	}
+	deepFried := ifc.Apply(src)
 
 	if err := png.Encode(out, deepFried); err != nil {
 		panic(err)

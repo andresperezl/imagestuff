@@ -10,33 +10,31 @@ const maxU16 uint32 = 0xffff
 // how much of it is applied, a factor of 1 completely replaces the color, a factor
 // of 0 does nothing
 func NewTintColorFilter(c color.Color, factor float64) ColorFilter {
-
-	s := uint32(factor * 255.0)
-	s |= s << 8
 	tr, tg, tb, _ := c.RGBA()
+	f := clamp01f64(factor)
 	filter := tint{
-		rf: tr * s / maxU16,
-		gf: tg * s / maxU16,
-		bf: tb * s / maxU16,
-		of: (maxU16 - s) / maxU16,
+		rf: float64(tr) * f,
+		gf: float64(tg) * f,
+		bf: float64(tb) * f,
+		fi: 1.0 - f,
 	}
 	return filter.Apply
 }
 
 type tint struct {
-	rf, gf, bf uint32
-	of         uint32
+	rf, gf, bf float64
+	fi         float64
 }
 
 func (t *tint) Apply(c color.Color) color.Color {
 	r, g, b, a := c.RGBA()
 	nc := color.NRGBA{}
-	nr := r*t.of + t.rf
-	nc.R = uint8(min(nr, 0xffff) >> 8)
-	ng := g*t.of + t.gf
-	nc.G = uint8(min(ng, 0xffff) >> 8)
-	nb := b*t.of + t.bf
-	nc.B = uint8(min(nb, 0xffff) >> 8)
+	nr := float64(r)*t.fi + t.rf
+	nc.R = uint8(uint32(min(nr, 65535.0)) >> 8)
+	ng := float64(g)*t.fi + t.gf
+	nc.G = uint8(uint32(min(ng, 65535.0)) >> 8)
+	nb := float64(b)*t.fi + t.bf
+	nc.B = uint8(uint32(min(nb, 65535.0)) >> 8)
 	nc.A = uint8(a >> 8)
 	return nc
 }
