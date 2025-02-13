@@ -1,10 +1,9 @@
 package filters
 
 import (
+	"cmp"
 	"image"
 	"image/color"
-
-	"golang.org/x/exp/constraints"
 )
 
 type Filter interface {
@@ -42,7 +41,7 @@ func (cfc ColorFilterChain) Apply(src image.Image) image.Image {
 	return dst
 }
 
-func clampFunc[T constraints.Ordered](min, max T) func(T) T {
+func clampFunc[T cmp.Ordered](min, max T) func(T) T {
 	return func(v T) T {
 		if v < min {
 			return min

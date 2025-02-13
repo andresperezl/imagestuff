@@ -4,7 +4,7 @@ import (
 	"image/color"
 	"math"
 
-	"github.com/andresperezl/imagestuff/hsl"
+	iscolor "github.com/andresperezl/imagestuff/color"
 )
 
 // NewModulateColorFilter create a new filter that  adjusts the brightness, saturation, and hue of the input image.
@@ -29,7 +29,7 @@ func (mi *modulate) Apply(c color.Color) color.Color {
 	original := color.NRGBAModel.Convert(c).(color.NRGBA)
 
 	// Convert RGB (0-255) to HSL.
-	hslColor := hsl.HSLModel.Convert(c).(hsl.HSL)
+	hslColor := iscolor.HSLModel.Convert(c).(iscolor.HSL)
 	h, s, l := hslColor.H, hslColor.S, hslColor.L
 
 	// Apply brightness and saturation factors.

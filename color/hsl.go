@@ -1,4 +1,4 @@
-package hsl
+package color
 
 import (
 	"image/color"
@@ -32,7 +32,7 @@ func (c HSL) RGBA() (uint32, uint32, uint32, uint32) {
 		b = hue2rgb(p, q, hk-1.0/3.0)
 	}
 
-	return uint32(math.Round(r * 0xfff)), uint32(math.Round(g * 0xffff)), uint32(math.Round(b * 0xffff)), 0xffff
+	return uint32(math.Round(r * 0xffff)), uint32(math.Round(g * 0xffff)), uint32(math.Round(b * 0xffff)), 0xffff
 }
 
 func hue2rgb(p, q, t float64) float64 {
@@ -62,12 +62,12 @@ func hslModel(c color.Color) color.Color {
 		return c
 	}
 	r, g, b, _ := c.RGBA()
-	rf := float64(r) / 255.0
-	gf := float64(g) / 255.0
-	bf := float64(b) / 255.0
+	rf := float64(r) / 65535.0
+	gf := float64(g) / 65535.0
+	bf := float64(b) / 65535.0
 
-	max := math.Max(rf, math.Max(gf, bf))
-	min := math.Min(rf, math.Min(gf, bf))
+	max := max(rf, max(gf, bf))
+	min := min(rf, min(gf, bf))
 	l := (max + min) / 2
 
 	var h, s float64
